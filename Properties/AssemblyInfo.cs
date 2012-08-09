@@ -10,9 +10,9 @@ using System.Windows;
 [assembly: AssemblyTitle("FileMoveRenamer")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("J. C. Penney Co., Inc.")]
+[assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("FileMoveRenamer")]
-[assembly: AssemblyCopyright("Copyright © J. C. Penney Co., Inc. 2009")]
+[assembly: AssemblyCopyright("")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -51,5 +51,5 @@ using System.Windows;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.0.9.*")]
-[assembly: AssemblyFileVersion("1.0.9.09")]
+[assembly: AssemblyVersion("1.1.9.*")]
+[assembly: AssemblyFileVersion("1.1.7.20")]

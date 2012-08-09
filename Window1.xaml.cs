@@ -25,7 +25,6 @@ namespace FileMoveRenamer
     /// </summary>
     public partial class Window1 : Window
     {
-        string _tempfile;
         bool RenameFiles = false;
         bool CloseWhenDone = false;
 
@@ -41,8 +40,15 @@ namespace FileMoveRenamer
 
         private void btnSourceFolder_Click(object sender, RoutedEventArgs e)
         {
+            string NewSourceFolder = GetFolderLocation(txtSourceFolder.Text);
 
-            txtSourceFolder.Text = GetFolderLocation(txtSourceFolder.Text);
+            if (NewSourceFolder.Length.Equals(0))
+                return;
+
+            if (txtSourceFolder.Text.Length.Equals(0))
+                txtSourceFolder.Text = NewSourceFolder;
+            else
+                txtSourceFolder.Text += "," + NewSourceFolder;
 
         }
 
@@ -70,7 +76,7 @@ namespace FileMoveRenamer
                 _FolderPath = Environment.GetFolderPath(Environment.SpecialFolder.MyComputer);
 
             System.Windows.Forms.FolderBrowserDialog ofd = new System.Windows.Forms.FolderBrowserDialog();
-            //ofd.Description = "Select Folder.";
+            
             ofd.SelectedPath = _FolderPath;
 
             ofd.ShowNewFolderButton = false;
@@ -86,20 +92,24 @@ namespace FileMoveRenamer
 
         private void btnMove_Click(object sender, RoutedEventArgs e)
         {
-            if (!System.IO.Directory.Exists(txtSourceFolder.Text))
-            {
-                MessageBox.Show("Can't source folder.");
-                return;
-            }
-            else if (!System.IO.Directory.Exists(txtDesationFolder.Text))
-            {
-                MessageBox.Show("Can't Desertion folder.");
-                return;
-            }
+            if(txtSourceFolder.Text.IndexOf(",").Equals(-1))
+                if (!System.IO.Directory.Exists(txtSourceFolder.Text))
+                {
+                    MessageBox.Show("Can't source folder.");
+                    return;
+                }
+            
+            if (!System.IO.Directory.Exists(txtDesationFolder.Text))
+                {
+                    MessageBox.Show("Can't Desertion folder.");
+                    return; 
+                }
 
             progressBar1.Minimum = 0;
             progressBar1.Value = 0;
-            progressBar1.Maximum = System.IO.Directory.GetFiles(txtSourceFolder.Text).Length;
+            
+            ///Make a function for this or get all the files in dir then pass tot he move function.  :-\
+            //progressBar1.Maximum = System.IO.Directory.GetFiles(txtSourceFolder.Text).Length;
 
             RenameFiles = (bool)cbxRenameFiles.IsChecked;
             CloseWhenDone = (bool)ckbCloseAfterMove.IsChecked;
@@ -168,49 +178,58 @@ namespace FileMoveRenamer
         private void MoveFile(object folderlists)
         {
 
-            string[] tmep = folderlists.ToString().Split(';');
+            string[] SD = folderlists.ToString().Split(';');
+            string[] sourcefolders = SD[0].Split(',');
+            string Desation = SD[1];
 
-            foreach (string tempfile in System.IO.Directory.GetFiles(tmep[0]))
+            foreach (var sourcefolder in sourcefolders)
             {
-                if (RenameFiles)
+                try
                 {
-                    //System.Threading.Thread.Sleep(10);
 
-                    System.IO.File.SetCreationTimeUtc(tempfile, DateTime.UtcNow);
-                    System.IO.File.SetLastWriteTimeUtc(tempfile, DateTime.UtcNow);
-                    System.IO.File.SetLastAccessTimeUtc(tempfile, DateTime.UtcNow);
-
-                    System.IO.FileInfo myFile = new System.IO.FileInfo(tempfile);
-
-                    System.IO.File.Move(tempfile,
-                            tmep[1] + "\\" + DateTime.Now.ToFileTimeUtc() + myFile.Extension.ToLower());
-
-                }
-                else
-                {
-                   // System.Threading.Thread.Sleep(100);
-
-                    System.IO.FileInfo myFile = new System.IO.FileInfo(tempfile);
-
-                    try
+                    foreach (string tempfile in System.IO.Directory.GetFiles(sourcefolder))
                     {
+                        if (RenameFiles)
+                        {
+                            System.IO.File.SetCreationTimeUtc(tempfile, DateTime.UtcNow);
+                            System.IO.File.SetLastWriteTimeUtc(tempfile, DateTime.UtcNow);
+                            System.IO.File.SetLastAccessTimeUtc(tempfile, DateTime.UtcNow);
 
-                        if (System.IO.File.Exists(tmep[1] + "\\" + myFile.Name))
-                            System.IO.File.Move(tempfile, tmep[1] + "\\" + DateTime.Now.Second + "_" + myFile.Name);
+                            System.IO.FileInfo myFile = new System.IO.FileInfo(tempfile);
+
+                            System.IO.File.Move(tempfile,
+                                    Desation + "\\" + DateTime.Now.ToFileTimeUtc() + myFile.Extension.ToLower());
+
+                        }
                         else
-                            System.IO.File.Move(tempfile, tmep[1] + "\\" + myFile.Name);
-                    }
-                    catch (Exception ex)
-                    {
-                        global::System.Windows.Forms.MessageBox.Show(ex.Message);
-                    }
+                        {
+                            System.IO.FileInfo myFile = new System.IO.FileInfo(tempfile);
 
+                            try
+                            {
+
+                                if (System.IO.File.Exists(Desation + "\\" + myFile.Name))
+                                    System.IO.File.Move(tempfile, Desation + "\\" + DateTime.Now.Second + "_" + myFile.Name);
+                                else
+                                    System.IO.File.Move(tempfile, Desation + "\\" + myFile.Name);
+                            }
+                            catch (Exception ex)
+                            {
+                                global::System.Windows.Forms.MessageBox.Show(ex.Message);
+                            }
+
+                        }
+
+                        progressBar1.Dispatcher.Invoke(DispatcherPriority.Normal, new CheckBlah(CheckStatus));
+
+                    }
                 }
-
-                progressBar1.Dispatcher.Invoke(DispatcherPriority.Normal, new CheckBlah(CheckStatus));
-
+                catch (IOException ex)
+                {
+                    if (!ex.Message.StartsWith("The device is not ready"))
+                        MessageBox.Show("Error accessing " + sourcefolder + ". Error is " + ex.Message);
+                }
             }
-
             MessageBox.Show("Done","Move Done.",
                             MessageBoxButton.OK,
                             MessageBoxImage.Information,
@@ -276,6 +295,19 @@ namespace FileMoveRenamer
 
             CallProgram.Dispose();
             CallProgram = null;
+        }
+
+        private void lblClearSource_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            MessageBoxResult mbr = MessageBox.Show("Are you sure you want to clear out the sounce list?", "Clear", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (mbr.Equals(MessageBoxResult.Yes))
+                txtSourceFolder.Text = "";
+        }
+
+        private void txtSourceFolder_TextChanged(object sender, TextChangedEventArgs e)
+        {
+
         }
     }
 }
